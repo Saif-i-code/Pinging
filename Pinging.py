@@ -25,6 +25,9 @@ except ValueError:
 
 total = 0
 success = 0
+min_rtt = float('inf')
+max_rtt = 0.0
+total_rtt = 0.0
 
 console.print(f"\n[bold yellow]Pinging {target}... (Ctrl+C to stop)[/bold yellow]\n")
 
@@ -35,17 +38,24 @@ try:
         
         if res.is_alive:
             success += 1
-            console.print(f"[bold green]✔[/bold green] [cyan]{res.address}[/cyan] | time=[bold white]{res.avg_rtt}ms[/bold white] | size={size} bytes")
+            current_rtt = res.avg_rtt
+            total_rtt += current_rtt
+            
+            if current_rtt < min_rtt: min_rtt = current_rtt
+            if current_rtt > max_rtt: max_rtt = current_rtt
+            
+            console.print(f"[bold green]✔[/bold green] [cyan]{res.address}[/cyan] | time=[bold white]{current_rtt}ms[/bold white] | [dim]min={min_rtt}ms max={max_rtt}ms[/dim]")
         else:
             console.print(f"[bold red]✘[/bold red] [red]{target} timed out[/red]")
             
         time.sleep(1)
 
 except KeyboardInterrupt:
+    # Final Table
     console.print("\n")
     if total > 0:
-        summary = Table(title="[bold blue]Session Summary[/bold blue]", border_style="cyan")
-        summary.add_column("Stat", style="magenta")
+        summary = Table(title="[bold blue]📊 Session Summary[/bold blue]", border_style="cyan")
+        summary.add_column("Measurement", style="magenta")
         summary.add_column("Value", style="bold white")
         
         summary.add_row("Target Host", target)
@@ -55,6 +65,10 @@ except KeyboardInterrupt:
         loss = ((total - success) / total * 100)
         loss_style = "green" if loss == 0 else "yellow" if loss < 10 else "red"
         summary.add_row("Packet Loss", f"[{loss_style}]{loss:.1f}%[/{loss_style}]")
+        
+        if success > 0:
+            summary.add_row("Minimum RTT", f"{min_rtt}ms")
+            summary.add_row("Maximum RTT", f"{max_rtt}ms")
         
         console.print(summary)
     
